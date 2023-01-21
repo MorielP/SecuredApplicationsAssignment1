@@ -22,13 +22,23 @@ public class Conf {
 
     }
 
-    public void store(String path, String fieldName, String fieldValue) throws FileNotFoundException, IOException {
+    public String getAlias(){
+        String FieldValue = this.alias;
+        return FieldValue;
+    }
+
+    public char[] getPass(){
+        char[] pass = this.password.toCharArray();
+        return pass;
+    }
+
+    public void store(String path, String fieldName, String fieldValue) throws IOException {
         OutputStream output = new FileOutputStream(path);
         this.prop.setProperty(fieldName, fieldValue);
         this.prop.store(output, null);
     }
 
-    public void load(String path) throws FileNotFoundException, IOException {
+    public void load(String path) throws IOException {
         InputStream input = new FileInputStream(path);
         this.prop = new Properties();
         this.prop.load(input);
@@ -72,5 +82,6 @@ public class Conf {
         if (IVString != null) {
             this.IVString = IVString;
         }
+
     }
 }
