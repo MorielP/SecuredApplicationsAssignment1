@@ -24,16 +24,6 @@ public class Conf {
 
     }
 
-    /**public String getAlias(){
-        String FieldValue = this.alias;
-        return FieldValue;
-    }
-
-    public char[] getPass(){
-        char[] pass = this.password.toCharArray();
-        return pass;
-    }**/
-
     public void store(String path, String fieldName, String fieldValue) throws IOException {
         OutputStream output = new FileOutputStream(path);
         this.prop.setProperty(fieldName, fieldValue);
@@ -63,14 +53,12 @@ public class Conf {
 
         String signatureProvider = this.prop.getProperty("signatureProvider");
         //if (signatureProvider == null) signatureProvider="";
-        if (signatureProvider != null) this.signatureProvider = signatureProvider;//this.prop.getProperty(signatureProvider);
+        if (signatureProvider != null) this.signatureProvider = signatureProvider;
         if (signatureProvider == null) this.signatureProvider="SunJCE";
 
         String cipherProvider = this.prop.getProperty("cipherProvider");
-        if (cipherProvider == null){
-            this.cipherProvider = "SunJCE";
-        }
-        this.cipherProvider =cipherProvider;
+        if (cipherProvider == null) this.cipherProvider = "SunJCE";
+        else this.cipherProvider = cipherProvider;
 
         String signature = this.prop.getProperty("signature");
         // Signature is optional, and required only on decrypt mode.
