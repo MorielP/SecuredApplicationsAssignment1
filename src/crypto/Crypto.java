@@ -11,7 +11,7 @@ import java.nio.file.*;
 import java.util.concurrent.*;
 
 public class Crypto {
-    static String usage = "crypto CONF INPUT_DATA";
+    static String usage = "crypto CONF INPUT_DATA PASSWORD";
 
     //Get the private and public keys from the certificate with alias "alias" (given in conf file)
     static KeyPair getKeyPair(X509Certificate cert, KeyStore keyStore, String alias, String password) throws Exception{
@@ -171,7 +171,7 @@ public class Crypto {
 
     public static void main(String[] args) throws Exception {
         //Verify the user provided a configuration file and a data file
-        if (args.length != 2) {
+        if (args.length != 3) {
             System.out.println("Invalid arguments\n Usage: " + usage);
             return;
         }
@@ -180,9 +180,10 @@ public class Crypto {
         String confPath = args[0];
         conf.load(confPath);
         String inputPath = args[1];
-        KeyStore ks = Crypto.getKeyStore(conf.keyStorePath, conf.password);
+        String password = args[2];
+        KeyStore ks = Crypto.getKeyStore(conf.keyStorePath, password);
         X509Certificate cert = (X509Certificate)ks.getCertificate(conf.alias);
-        KeyPair keyPair = Crypto.getKeyPair(cert, ks, conf.alias, conf.password);
+        KeyPair keyPair = Crypto.getKeyPair(cert, ks, conf.alias, password);
         String signAlgorithm = conf.signAlgorithm;
         int keyLength = conf.keyLength;
 

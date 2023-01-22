@@ -5,7 +5,6 @@ import java.util.Properties;
 
 public class Conf {
     boolean mode=false;
-    String password;
     String alias;
     String keyStorePath;
     String signature;
@@ -34,7 +33,6 @@ public class Conf {
         this.prop = new Properties();
         this.prop.load(input);
         this.mode = Objects.equals(this.prop.getProperty("mode"), "encrypt");
-        this.password = this.prop.getProperty("password");
         this.alias = this.prop.getProperty("alias");
         this.keyStorePath = this.prop.getProperty("keystore");
         //this.cipher = this.prop.getProperty("cipher");
