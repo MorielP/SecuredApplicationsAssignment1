@@ -7,6 +7,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.cert.Certificate;
 import java.util.Base64;
+import java.nio.file.*;
+import java.util.concurrent.*;
 
 public class Crypto {
     static String usage = "crypto CONF INPUT_DATA";
@@ -63,10 +65,14 @@ public class Crypto {
     }
 
     //Decrypt the cipherText created by encryption, using the same algorithm, IV, and the symmetric key of the public key used for encryption
-    private static byte[] decryptData(Conf conf, SecretKey symmetricKey, byte[] data, IvParameterSpec IV) throws Exception {
+    private static byte[] decryptData(String inputFile, Conf conf, SecretKey symmetricKey, byte[] data, IvParameterSpec IV) throws Exception {
         String cipherProvider = conf.prop.getProperty("cipherProvider");
         Cipher enc = Cipher.getInstance(conf.prop.getProperty("cipherTpEncryptData"),cipherProvider);
-        enc.init(Cipher.DECRYPT_MODE, symmetricKey, IV);
+        try {
+            enc.init(Cipher.DECRYPT_MODE, symmetricKey, IV);
+        } catch (Exception e){
+            conf.store(inputFile+ ".plain", "Bad decryption:", "File didn't pass integrity test");
+        }
         return enc.doFinal(data);
     }
 
@@ -94,13 +100,13 @@ public class Crypto {
     }
 
     //Initialize all vars needed for encryption,
-    public static byte[] encrypt(KeyStore ks,X509Certificate cert, Conf conf, String confPath, KeyPair kp, String inputFile, String algorithm, Cipher cipher, String cipherProvider, int keyLength) throws Exception {
+    public static byte[] encrypt(X509Certificate cert, KeyPair kp, Conf conf, String confPath,  String inputFile, String algorithm, int keyLength) throws Exception {
         byte[] plainData = readFile(inputFile);
         IvParameterSpec IV = generateIV(conf, confPath);
-        SecretKey symmetricKey = generateSymmetricKey(cert, conf, confPath, cipher, cipherProvider, keyLength);
+        SecretKey symmetricKey = generateSymmetricKey(cert, conf, confPath, keyLength);
         byte[] encryptedData = encryptData(conf, symmetricKey, plainData, IV);
         byte[] signature = sign(conf, kp, encryptedData, algorithm);
-        writeFile(inputFile + ".cipher", encryptedData);
+        writeFile("encrypted.txt", encryptedData);
         return signature;
     }
 
@@ -117,7 +123,7 @@ public class Crypto {
     }
 
     // Generate symmetric key for the plaintext encryption
-    public static SecretKey generateSymmetricKey(X509Certificate cert, Conf conf, String confPath, Cipher cipher,String cipherProvider, int keyLength) throws Exception{
+    public static SecretKey generateSymmetricKey(X509Certificate cert, Conf conf, String confPath, int keyLength) throws Exception{
         KeyGenerator symmetricKeyGenerator = KeyGenerator.getInstance("AES");
         symmetricKeyGenerator.init(keyLength);
         SecretKey symmetricKey = symmetricKeyGenerator.generateKey();
@@ -137,7 +143,7 @@ public class Crypto {
     }
 
     //Decrypt the ciphertext provided using all the same vars used for encryption
-    public static void decrypt(KeyStore ks, Conf conf, KeyPair kp, String inputFile, byte[] signature, String algorithm, Cipher cipher) throws Exception {
+    public static void decrypt(KeyStore ks, Conf conf, KeyPair kp, String inputFile, byte[] signature, String algorithm) throws Exception {
         byte[] cryptData = readFile(inputFile);
         if (!verifySignature(kp, cryptData, signature, algorithm)) {
             System.out.println("Unable to decrypt file: invalid signature");
@@ -150,8 +156,8 @@ public class Crypto {
         SecretKey symmetricKey = DecryptSymmetricKey(conf, privateKey, encryptedSymmetricKey);
         byte[] IVArray = Base64.getDecoder().decode(conf.IVString);
         IvParameterSpec IV = new IvParameterSpec(IVArray);
-        byte[] decryptedData = decryptData(conf, symmetricKey, cryptData, IV);
-        writeFile(inputFile + ".plain", decryptedData);
+        byte[] decryptedData = decryptData(inputFile, conf, symmetricKey, cryptData, IV);
+        writeFile("decrypted.txt", decryptedData);
     }
 
     //Decrypt the symmetric key, all vars were saved in conf file during encryption
@@ -178,19 +184,15 @@ public class Crypto {
         X509Certificate cert = (X509Certificate)ks.getCertificate(conf.alias);
         KeyPair keyPair = Crypto.getKeyPair(cert, ks, conf.alias, conf.password);
         String signAlgorithm = conf.signAlgorithm;
-        Cipher cipher = Cipher.getInstance(conf.cipher);
         int keyLength = conf.keyLength;
-        String cipherProvider = conf.cipherProvider;
 
-        if (conf.mode) {
-            byte[] signature = encrypt(ks, cert, conf,confPath, keyPair, inputPath, signAlgorithm, cipher, cipherProvider, keyLength);
-            String base64Signatue = Base64.getEncoder().encodeToString(signature);
-            conf.store(confPath + ".decryptor", "signature", base64Signatue);
-        } else {
-            byte[] signature = Base64.getDecoder().decode(conf.signature);
-            decrypt(ks, conf, keyPair, inputPath, signature, signAlgorithm, cipher);
-        }
-
+        byte[] signature = encrypt( cert, keyPair, conf,confPath, inputPath, signAlgorithm, keyLength);
+        String base64Signatue = Base64.getEncoder().encodeToString(signature);
+        conf.store(confPath , "signature", base64Signatue);
+        conf.load(confPath);
+        String decInputPath = "encrypted.txt";
+        byte[] decSignature = Base64.getDecoder().decode(conf.signature);
+        decrypt(ks, conf, keyPair, decInputPath, decSignature, signAlgorithm);
     }
 
 }

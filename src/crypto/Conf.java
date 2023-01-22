@@ -10,7 +10,6 @@ public class Conf {
     String keyStorePath;
     String signature;
     String signAlgorithm;
-    String cipher;
     int keyLength;
     String cipherProvider;
     String signatureProvider;
@@ -38,7 +37,7 @@ public class Conf {
         this.password = this.prop.getProperty("password");
         this.alias = this.prop.getProperty("alias");
         this.keyStorePath = this.prop.getProperty("keystore");
-        this.cipher = this.prop.getProperty("cipher");
+        //this.cipher = this.prop.getProperty("cipher");
         this.keyLength = Integer.parseInt(this.prop.getProperty("keyLength"));
         this.cipherToEncryptSymmetricKey = this.prop.getProperty("cipherToEncryptSymmetricKey");
         this.cipherTpEncryptData = this.prop.getProperty("cipherTpEncryptData");
@@ -52,7 +51,6 @@ public class Conf {
         this.signAlgorithm = signAlgorithm;
 
         String signatureProvider = this.prop.getProperty("signatureProvider");
-        //if (signatureProvider == null) signatureProvider="";
         if (signatureProvider != null) this.signatureProvider = signatureProvider;
         if (signatureProvider == null) this.signatureProvider="SunJCE";
 
