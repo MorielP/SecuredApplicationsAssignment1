@@ -17,7 +17,7 @@ public class Conf {
     String IVString;
     String cipherToEncryptSymmetricKey;
     String cipherTpEncryptData;
-    Properties prop;
+    private Properties prop;
 
     public Conf() {
 
@@ -41,7 +41,7 @@ public class Conf {
         this.keyLength = Integer.parseInt(this.prop.getProperty("keyLength"));
         this.cipherToEncryptSymmetricKey = this.prop.getProperty("cipherToEncryptSymmetricKey");
         this.cipherTpEncryptData = this.prop.getProperty("cipherTpEncryptData");
-        this.cipherProvider=this.prop.getProperty("cipherProvider");
+        this.cipherProvider = this.prop.getProperty("cipherProvider");
 
         //Optional fields
         String signAlgorithm = this.prop.getProperty("signatureAlgorithm");
