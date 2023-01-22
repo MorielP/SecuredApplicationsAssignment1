@@ -14,15 +14,17 @@ public class Conf {
     int keyLength;
     String cipherProvider;
     String signatureProvider;
-    String encriptedSymmetricKeyString;
+    String encryptedSymmetricKeyString;
     String IVString;
+    String cipherToEncryptSymmetricKey;
+    String cipherTpEncryptData;
     Properties prop;
 
     public Conf() {
 
     }
 
-    public String getAlias(){
+    /**public String getAlias(){
         String FieldValue = this.alias;
         return FieldValue;
     }
@@ -30,7 +32,7 @@ public class Conf {
     public char[] getPass(){
         char[] pass = this.password.toCharArray();
         return pass;
-    }
+    }**/
 
     public void store(String path, String fieldName, String fieldValue) throws IOException {
         OutputStream output = new FileOutputStream(path);
@@ -48,6 +50,9 @@ public class Conf {
         this.keyStorePath = this.prop.getProperty("keystore");
         this.cipher = this.prop.getProperty("cipher");
         this.keyLength = Integer.parseInt(this.prop.getProperty("keyLength"));
+        this.cipherToEncryptSymmetricKey = this.prop.getProperty("cipherToEncryptSymmetricKey");
+        this.cipherTpEncryptData = this.prop.getProperty("cipherTpEncryptData");
+        this.cipherProvider=this.prop.getProperty("cipherProvider");
 
         //Optional fields
         String signAlgorithm = this.prop.getProperty("signatureAlgorithm");
@@ -57,12 +62,13 @@ public class Conf {
         this.signAlgorithm = signAlgorithm;
 
         String signatureProvider = this.prop.getProperty("signatureProvider");
-        if (signatureProvider == null) signatureProvider="SunJCE";
-        this.signatureProvider = signatureProvider;
+        //if (signatureProvider == null) signatureProvider="";
+        if (signatureProvider != null) this.signatureProvider = signatureProvider;//this.prop.getProperty(signatureProvider);
+        if (signatureProvider == null) this.signatureProvider="SunJCE";
 
         String cipherProvider = this.prop.getProperty("cipherProvider");
         if (cipherProvider == null){
-            cipherProvider = "SunJCE";
+            this.cipherProvider = "SunJCE";
         }
         this.cipherProvider =cipherProvider;
 
@@ -72,9 +78,9 @@ public class Conf {
             this.signature = signature;
         }
 
-        String encriptedSymmetricKeyString = this.prop.getProperty("encriptedSymmetricKeyString");
-        if (encriptedSymmetricKeyString  != null) {
-            this.encriptedSymmetricKeyString = encriptedSymmetricKeyString;
+        String encryptedSymmetricKeyString = this.prop.getProperty("encriptedSymmetricKeyString");
+        if (encryptedSymmetricKeyString  != null) {
+            this.encryptedSymmetricKeyString = encryptedSymmetricKeyString;
         }
 
         String IVString = this.prop.getProperty("IVString");

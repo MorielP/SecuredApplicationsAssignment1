@@ -1,6 +1,5 @@
 package crypto;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.*;
 import javax.crypto.*;
@@ -8,12 +7,12 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.cert.Certificate;
 import java.util.Base64;
+import java.util.List;
 
 public class Crypto {
     static String usage = "crypto CONF INPUT_DATA";
 
     static KeyPair getKeyPair(X509Certificate cert, KeyStore keyStore, String alias, String password) throws Exception{
-        //X509Certificate cert = (X509Certificate)Global.ks.getCertificate(alias);
         Key key = keyStore.getKey(alias, password.toCharArray());
         PublicKey publicKey = cert.getPublicKey();
 
@@ -45,24 +44,31 @@ public class Crypto {
         }
     }
 
-     static byte[] sign(KeyPair kp, byte[] data, String algorithm) throws Exception {
-        Signature sig = Signature.getInstance(algorithm);
+     static byte[] sign(Conf conf, KeyPair kp, byte[] data, String algorithm) throws Exception {
+        Signature sig;
+        try {
+            Signature sig1=Signature.getInstance(algorithm,conf.prop.getProperty("signatureProvider"));
+            sig = sig1;
+        } catch (Exception e ){
+            Signature sig1 = Signature.getInstance(algorithm);
+            sig =sig1;
+        }
+
         sig.initSign(kp.getPrivate());
         sig.update(data);
         return sig.sign();
     }
 
-    private static byte[] decryptData(SecretKey symmetricKey, byte[] data, Cipher cipher, IvParameterSpec IV) throws Exception {
-        //Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-        //Cipher enc = Cipher.getInstance(cipher);
-        Cipher enc = Cipher.getInstance("AES/CBC/PKCS5Padding");
+    private static byte[] decryptData(Conf conf, SecretKey symmetricKey, byte[] data, IvParameterSpec IV) throws Exception {
+        String cipherProvider = conf.prop.getProperty("cipherProvider");
+        Cipher enc = Cipher.getInstance(conf.prop.getProperty("cipherTpEncryptData"),cipherProvider);
         enc.init(Cipher.DECRYPT_MODE, symmetricKey, IV);
         return enc.doFinal(data);
     }
 
-    private static byte[] encryptData(SecretKey symmetricKey, byte[] data, Cipher cipher, IvParameterSpec IV) throws Exception {
-        //Cipher enc = Cipher.getInstance(cipher);
-        Cipher enc = Cipher.getInstance("AES/CBC/PKCS5Padding");
+    private static byte[] encryptData(Conf conf, SecretKey symmetricKey, byte[] data, IvParameterSpec IV) throws Exception {
+        String cipherProvider = conf.prop.getProperty("cipherProvider");
+        Cipher enc = Cipher.getInstance(conf.prop.getProperty("cipherTpEncryptData"), cipherProvider);
         enc.init(Cipher.ENCRYPT_MODE, symmetricKey, IV);
         return enc.doFinal(data);
     }
@@ -84,8 +90,8 @@ public class Crypto {
         byte[] plainData = readFile(inputFile);
         IvParameterSpec IV = generateIV(conf, confPath);
         SecretKey symmetricKey = generateSymmetricKey(ks, cert, conf, confPath, cipher, cipherProvider, keyLength);
-        byte[] encryptedData = encryptData(symmetricKey, plainData, cipher, IV);
-        byte[] signature = sign(kp, encryptedData, algorithm);
+        byte[] encryptedData = encryptData(conf, symmetricKey, plainData, IV);
+        byte[] signature = sign(conf, kp, encryptedData, algorithm);
         writeFile(inputFile + ".cipher", encryptedData);
         return signature;
     }
@@ -103,16 +109,15 @@ public class Crypto {
 
     public static SecretKey generateSymmetricKey(KeyStore ks, X509Certificate cert, Conf conf, String confPath, Cipher cipher,String cipherProvider, int keyLength) throws Exception{
         KeyGenerator symmetricKeyGenerator = KeyGenerator.getInstance("AES");
-        //AlgorithmParameters algParam = new AlgorithmParameters.getInstance(cipher);
         symmetricKeyGenerator.init(keyLength);
         SecretKey symmetricKey = symmetricKeyGenerator.generateKey();
-        EncryptSymmetricKey(ks, conf, confPath, cert, symmetricKey);
+        EncryptSymmetricKey(conf, confPath, cert, symmetricKey);
         return symmetricKey;
     }
 
-    public static void EncryptSymmetricKey(KeyStore ks, Conf conf,String confPath, Certificate cert, SecretKey symmetricKey) throws  Exception{
+    public static void EncryptSymmetricKey(Conf conf,String confPath, Certificate cert, SecretKey symmetricKey) throws  Exception{
         PublicKey keyToEncryptSymmetricKey = cert.getPublicKey();
-        Cipher cipherToEncryptSymmetricKey = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        Cipher cipherToEncryptSymmetricKey = Cipher.getInstance(conf.prop.getProperty("cipherToEncryptSymmetricKey"));
         cipherToEncryptSymmetricKey.init(Cipher.ENCRYPT_MODE, keyToEncryptSymmetricKey);
         byte[] encryptedSymmetricKey = cipherToEncryptSymmetricKey.doFinal(symmetricKey.getEncoded());
         String encryptedSymmetricKeyString = Base64.getEncoder().encodeToString(encryptedSymmetricKey);
@@ -120,32 +125,28 @@ public class Crypto {
         conf.store(confPath + ".decryptor","mode", "decrypt");
     }
 
-    public static void decrypt(KeyStore ks, Conf conf, KeyPair kp, X509Certificate cert, String inputFile, byte[] signature, String algorithm, Cipher cipher) throws Exception {
+    public static void decrypt(KeyStore ks, Conf conf, KeyPair kp, String inputFile, byte[] signature, String algorithm, Cipher cipher) throws Exception {
         byte[] cryptData = readFile(inputFile);
         if (!verifySignature(kp, cryptData, signature, algorithm)) {
             System.out.println("Unable to decrypt file: invalid signature");
             return;
         }
 
-        Key privateKey = ks.getKey(conf.getAlias(), conf.getPass());
+        Key privateKey = ks.getKey(conf.prop.getProperty("alias"), conf.prop.getProperty("password").toCharArray());
         String encryptedSymmetricKeyString = conf.prop.getProperty("encryptedSymmetricKeyString");
         byte[] encryptedSymmetricKey = Base64.getDecoder().decode(encryptedSymmetricKeyString);
-        //SecretKey symmetricKey = DecryptSymmetricKey(cert, encryptedSymmetricKey);
-        SecretKey symmetricKey = DecryptSymmetricKey(privateKey, encryptedSymmetricKey);
-        byte[] ivByteArray = Base64.getDecoder().decode(conf.IVString);
-        IvParameterSpec IV = new IvParameterSpec(ivByteArray);
-        byte[] decryptedData = decryptData(symmetricKey, cryptData, cipher, IV);
+        SecretKey symmetricKey = DecryptSymmetricKey(conf, privateKey, encryptedSymmetricKey);
+        byte[] IVArray = Base64.getDecoder().decode(conf.IVString);
+        IvParameterSpec IV = new IvParameterSpec(IVArray);
+        byte[] decryptedData = decryptData(conf, symmetricKey, cryptData, IV);
         writeFile(inputFile + ".plain", decryptedData);
     }
 
-    public static SecretKey DecryptSymmetricKey(Key privateKey, byte[] encryptedSymmetricKey) throws Exception {
-
-        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        //byte[] decryptedSymmetricKey = decryptData(keyThatEncryptsSymmetricKey, encriptedSymmetricKey, "RSA");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        byte[] decryptedSymmetricKeyArr = cipher.doFinal(encryptedSymmetricKey);
+    public static SecretKey DecryptSymmetricKey(Conf conf, Key privateKey, byte[] encryptedSymmetricKey) throws Exception {
+        Cipher cipherToDecryptSymmetricKey = Cipher.getInstance(conf.prop.getProperty("cipherToEncryptSymmetricKey"));
+        cipherToDecryptSymmetricKey.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] decryptedSymmetricKeyArr = cipherToDecryptSymmetricKey.doFinal(encryptedSymmetricKey);
         SecretKey decryptedSymmetricKey = new SecretKeySpec(decryptedSymmetricKeyArr, "AES");
-        //SecretKey decryptedSymmetricKey = (SecretKey) cipher.doFinal(encriptedSymmetricKey);
         return decryptedSymmetricKey;
     }
 
@@ -173,7 +174,7 @@ public class Crypto {
             conf.store(confPath + ".decryptor", "signature", base64Signatue);
         } else {
             byte[] signature = Base64.getDecoder().decode(conf.signature);
-            decrypt(ks, conf, keyPair, cert, inputPath, signature, signAlgorithm, cipher);
+            decrypt(ks, conf, keyPair, inputPath, signature, signAlgorithm, cipher);
         }
 
     }

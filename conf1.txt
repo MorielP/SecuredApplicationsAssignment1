@@ -2,9 +2,11 @@ mode=encrypt
 password=123456
 alias=keya
 keystore=/Users/morielpeleg/KeyStoreC.pkcs12
-signatureAlgorithm=SHA1withRSA
-cipher=RSA/ECB/OAEPWithSHA-256AndMGF1Padding
+signatureAlgorithm= SHA1withRSA
+cipher=RSA/ECB/PKCS1Padding
 keyLength=128
-signatureProvider=SunJCE
+signatureProvider
 cipherProvider=SunJCE
+cipherToEncryptSymmetricKey=RSA/ECB/PKCS1Padding
+cipherTpEncryptData=AES/CBC/PKCS5Padding
 
