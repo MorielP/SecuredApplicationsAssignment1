@@ -5,10 +5,7 @@ import java.security.cert.*;
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.cert.Certificate;
 import java.util.Base64;
-import java.nio.file.*;
-import java.util.concurrent.*;
 
 public class Crypto {
     static String usage = "crypto CONF INPUT_DATA PASSWORD";
@@ -167,10 +164,8 @@ public class Crypto {
     }
 
     public static void main(String[] args) throws Exception {
-    //move-password-to-cmdline
         //Verify the user provided a configuration file and a data file
         if (args.length != 3) {
-        main
             System.out.println("Invalid arguments\n Usage: " + usage);
             return;
         }
