@@ -133,7 +133,7 @@ public class Crypto {
         cipherToEncryptSymmetricKey.init(Cipher.ENCRYPT_MODE, kp.getPublic());
         byte[] encryptedSymmetricKey = cipherToEncryptSymmetricKey.doFinal(symmetricKey.getEncoded());
         String encryptedSymmetricKeyString = Base64.getEncoder().encodeToString(encryptedSymmetricKey);
-        conf.store(confPath + ".decryptor", "encryptedSymmetricKeyString", encryptedSymmetricKeyString);
+        conf.store(confPath +".decryptor", "encryptedSymmetricKeyString", encryptedSymmetricKeyString);
         conf.store(confPath + ".decryptor", "mode", "decrypt");
     }
 
@@ -181,13 +181,13 @@ public class Crypto {
         String signAlgorithm = conf.signAlgorithm;
         int keyLength = conf.keyLength;
 
-        byte[] signature = encrypt(keyPair, conf,confPath, inputPath, signAlgorithm, keyLength);
+        byte[] signature = Crypto.encrypt(keyPair, conf,confPath, inputPath, signAlgorithm, keyLength);
         String base64Signatue = Base64.getEncoder().encodeToString(signature);
-        conf.store(confPath , "signature", base64Signatue);
-        conf.load(confPath);
+        conf.store(confPath +".decryptor", "signature", base64Signatue);
+        conf.load(confPath+".decryptor");
         String decInputPath = "encrypted.txt";
         byte[] decSignature = Base64.getDecoder().decode(conf.signature);
-        decrypt(conf, keyPair, decInputPath, decSignature, signAlgorithm);
+        Crypto.decrypt(conf, keyPair, decInputPath, decSignature, signAlgorithm);
     }
 
 }

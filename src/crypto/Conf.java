@@ -62,7 +62,7 @@ public class Conf {
             this.signature = signature;
         }
 
-        String encryptedSymmetricKeyString = this.prop.getProperty("encriptedSymmetricKeyString");
+        String encryptedSymmetricKeyString = this.prop.getProperty("encryptedSymmetricKeyString");
         if (encryptedSymmetricKeyString  != null) {
             this.encryptedSymmetricKeyString = encryptedSymmetricKeyString;
         }
